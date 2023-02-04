@@ -23,10 +23,11 @@ function(add_ngtcp2_lib)
   check_include_file("stdlib.h"      HAVE_STDLIB_H)
   check_include_file("string.h"      HAVE_STRING_H)
   check_include_file("unistd.h"      HAVE_UNISTD_H)
+if (NOT APPLE)
   check_include_file("sys/endian.h"  HAVE_SYS_ENDIAN_H)
   check_include_file("endian.h"      HAVE_ENDIAN_H)
   check_include_file("byteswap.h"    HAVE_BYTESWAP_H)
-
+endif()
   include(CheckTypeSize)
   check_type_size("ssize_t" SIZEOF_SSIZE_T)
   if(SIZEOF_SSIZE_T STREQUAL "")
@@ -34,14 +35,18 @@ function(add_ngtcp2_lib)
   endif()
 
   include(CheckSymbolExists)
+
   if(HAVE_ENDIAN_H)
     check_symbol_exists(be64toh "endian.h" HAVE_BE64TOH)
   endif()
+
   if(NOT HAVE_BE64TO AND HAVE_SYS_ENDIAN_H)
     check_symbol_exists(be64toh "sys/endian.h" HAVE_BE64TOH)
   endif()
 
-  check_symbol_exists(bswap_64 "byteswap.h" HAVE_BSWAP_64)
+  if (HAVE_BYTESWAP_H)
+    check_symbol_exists(bswap_64 "byteswap.h" HAVE_BSWAP_64)
+  endif()
 
   configure_file(ngtcp2/cmakeconfig.h.in ngtcp2/config.h)
   include_directories("${CMAKE_CURRENT_BINARY_DIR}/ngtcp2") # for config.h

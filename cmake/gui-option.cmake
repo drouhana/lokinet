@@ -1,6 +1,6 @@
 set(default_build_gui OFF)
 if(APPLE OR WIN32)
-  set(default_build_gui ON)
+  set(default_build_gui OFF)
 endif()
 
 if(WIN32)
