@@ -181,9 +181,9 @@ function(macos_target_setup)
       $<TARGET_BUNDLE_DIR:lokinet-extension>/Contents/Resources/bootstrap.signed
   )
 
+  #add_compile_options(-march=native)
 
   add_dependencies(lokinet lokinet-extension icon)
-
 
   if(CODESIGN_PROFILE)
     add_custom_target(copy_prov_prof

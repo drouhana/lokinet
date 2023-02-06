@@ -25,13 +25,13 @@ for ARCH in arm64 x86_64; do
 
     if [ "$(uname -m)" == "$ARCH" ]; then
         echo "Building for macOS [ $ARCH ] in $BUILDDIR" >&2
-        ./contrib/mac-configure.sh "$BUILDDIR"
-    else
-        echo "Cross-compiling for macOS [ $ARCH ] in $BUILDDIR" >&2
         ./contrib/mac-configure.sh "$BUILDDIR" \
             -DCMAKE_SYSTEM_NAME=Darwin \
-            -DARCH_TRIPLET="$ARCH-apple-darwin$(uname -r)" \
+            -DARCH_TRIPLET="$ARCH-apple-darwin" \
             -DCMAKE_OSX_ARCHITECTURE=$ARCH
+    else
+        echo "Cross-compiling for macOS [ $ARCH ] in $BUILDDIR" >&2
+        ./contrib/mac-configure.sh "$BUILDDIR"
     fi
 
     cd "$BUILDDIR"

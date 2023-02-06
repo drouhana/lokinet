@@ -273,22 +273,46 @@ if(CMAKE_CROSSCOMPILING)
 elseif(CMAKE_C_FLAGS MATCHES "-march=armv7")
   # Help openssl figure out that we're building from armv7 even if on armv8 hardware:
   set(openssl_arch linux-armv4)
+elseif(APPLE)
+  if (ARCH_TRIPLET MATCHES "^[arm64]")
+    set(openssl_arch darwin64-arm64-cc)
+  else()
+    set(openssl_arch darwin64-x86_64-cc)
+  endif()
 endif()
 
 
-build_external(openssl
-  CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CC=${deps_cc} ${openssl_system_env} ${openssl_configure_command}
-    --prefix=${DEPS_DESTDIR} --libdir=lib ${openssl_extra_opts}
-    no-shared no-capieng no-dso no-dtls1 no-ec_nistp_64_gcc_128 no-gost
-    no-md2 no-rc5 no-rdrand no-rfc3779 no-sctp no-ssl-trace no-ssl3
-    no-static-engine no-tests no-weak-ssl-ciphers no-zlib no-zlib-dynamic ${openssl_flags}
-    ${openssl_arch}
+if (APPLE)
+  build_external(openssl
+    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CC=${deps_cc} ${openssl_system_env} ./Configure
+      ${openssl_arch} no-asm enable-rc5 zlib
+      --prefix=${DEPS_DESTDIR} --libdir=lib ${openssl_extra_opts}
+      no-shared no-capieng no-dso no-dtls1 no-ec_nistp_64_gcc_128 no-gost
+      no-md2 no-rdrand no-rfc3779 no-sctp no-ssl-trace no-ssl3
+      no-static-engine no-tests no-weak-ssl-ciphers ${openssl_flags}
   BUILD_COMMAND ${CMAKE_COMMAND} -E env ${openssl_system_env} ${_make}
   INSTALL_COMMAND ${_make} install_sw
   BUILD_BYPRODUCTS
     ${DEPS_DESTDIR}/lib/libssl.a ${DEPS_DESTDIR}/lib/libcrypto.a
     ${DEPS_DESTDIR}/include/openssl/ssl.h ${DEPS_DESTDIR}/include/openssl/crypto.h
-)
+  )
+else()
+  build_external(openssl
+    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CC=${deps_cc} ${openssl_system_env} ${openssl_configure_command}
+      --prefix=${DEPS_DESTDIR} --libdir=lib ${openssl_extra_opts}
+      no-shared no-capieng no-dso no-dtls1 no-ec_nistp_64_gcc_128 no-gost
+      no-md2 no-rc5 no-rdrand no-rfc3779 no-sctp no-ssl-trace no-ssl3
+      no-static-engine no-tests no-weak-ssl-ciphers no-zlib no-zlib-dynamic ${openssl_flags}
+      ${openssl_arch} ${apple_silicon_extraopts}
+  BUILD_COMMAND ${CMAKE_COMMAND} -E env ${openssl_system_env} ${_make}
+  INSTALL_COMMAND ${_make} install_sw
+  BUILD_BYPRODUCTS
+    ${DEPS_DESTDIR}/lib/libssl.a ${DEPS_DESTDIR}/lib/libcrypto.a
+    ${DEPS_DESTDIR}/include/openssl/ssl.h ${DEPS_DESTDIR}/include/openssl/crypto.h
+  )
+endif()
+
+
 add_static_target(OpenSSL::SSL openssl_external libssl.a)
 add_static_target(OpenSSL::Crypto openssl_external libcrypto.a)
 if(WIN32)
@@ -328,10 +352,21 @@ else()
   set_target_properties(libunbound PROPERTIES INTERFACE_LINK_LIBRARIES "OpenSSL::SSL;OpenSSL::Crypto;ws2_32;crypt32;iphlpapi")
 endif()
 
-
-
-build_external(sodium CONFIGURE_COMMAND ./configure ${cross_host} ${cross_rc} --prefix=${DEPS_DESTDIR} --disable-shared
+if(APPLE)
+  if (ARCH_TRIPLET MATCHES "^[arm64]")
+    build_external(sodium CONFIGURE_COMMAND ./configure --host=arm-apple-darwin20 --prefix=${DEPS_DESTDIR} --disable-shared
+            --enable-static --enable-minimal "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}"
+            "LDFLAGS=${deps_ld}")
+  else()
+    build_external(sodium CONFIGURE_COMMAND ./configure --host=x86_64-apple-darwin10 ${cross_rc} --prefix=${DEPS_DESTDIR} --disable-shared
+            --enable-static --enable-minimal "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}"
+            "LDFLAGS=${deps_ld}")
+  endif()
+else()
+  build_external(sodium CONFIGURE_COMMAND ./configure ${cross_host} ${cross_rc} --prefix=${DEPS_DESTDIR} --disable-shared
           --enable-static --with-pic "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}")
+endif()
+
 add_static_target(sodium sodium_external libsodium.a)
 
 
