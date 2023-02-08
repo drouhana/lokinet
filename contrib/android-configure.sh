@@ -44,7 +44,6 @@ for abi in $build_abis; do
         -DFORCE_SPDLOG_SUBMODULE=ON \
         -DFORCE_NLOHMANN_SUBMODULE=ON \
         -DSUBMODULE_CHECK=OFF \
-        -DWITH_LTO=OFF \
         -DCMAKE_BUILD_TYPE=Release \
         "$@"
     cd -

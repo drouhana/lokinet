@@ -1,6 +1,13 @@
 # -flto
 include(CheckIPOSupported)
-option(WITH_LTO "enable lto on compile time" ON)
+
+if(WIN32 OR ANDROID OR IOS OR (APPLE AND (ARCH_TRIPLET MATCHES "^arm64")))
+  set(with_lto_default OFF)
+else()
+  set(with_lto_default ON)
+endif()
+
+option(WITH_LTO "enable lto on compile time" ${with_lto_default})
 if(WITH_LTO)
   if(WIN32)
     message(FATAL_ERROR "LTO not supported on win32 targets, please set -DWITH_LTO=OFF")
@@ -17,7 +24,7 @@ else()
 endif()
 
 function(enable_lto)
-  if(IPO_ENABLED)
+  if(WITH_LTO AND IPO_ENABLED)
     set_target_properties(${ARGN} PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
   endif()
 endfunction()

@@ -7,7 +7,6 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15 CACHE STRING "macOS deployment target (App
 
 option(BUILD_DAEMON "build lokinet daemon and associated utils" ON)
 
-
 set(LANGS C CXX)
 if(APPLE AND BUILD_DAEMON)
   set(LANGS ${LANGS} OBJC Swift)

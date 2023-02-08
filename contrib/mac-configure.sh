@@ -18,19 +18,12 @@ set -x
 mkdir -p "$BUILDDIR"
 cd "$BUILDDIR"
 
-if [[ "$(brew info llvm 2>&1 | grep -c "Poured from bottle on")" == 1 ]]; then
-    # we are using a homebrew clang, need new flags
-    LDFLAGS+="-L/opt/homebrew/opt/llvm/lib"
-    CXXFLAGS+="-I/opt/homebrew/opt/llvm/include"
-fi
-
 cmake \
     -G Ninja \
     -DBUILD_STATIC_DEPS=ON \
     -DWITH_TESTS=OFF \
     -DWITH_BOOTSTRAP=OFF \
     -DNATIVE_BUILD=OFF \
-    -DWITH_LTO=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_COMPILER=$(which clang) \
     -DCMAKE_CXX_COMPILER=$(which clang++) \

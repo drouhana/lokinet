@@ -274,10 +274,20 @@ elseif(CMAKE_C_FLAGS MATCHES "-march=armv7")
   # Help openssl figure out that we're building from armv7 even if on armv8 hardware:
   set(openssl_arch linux-armv4)
 elseif(APPLE)
-  if (ARCH_TRIPLET MATCHES "^[arm64]")
+  if (ARCH_TRIPLET MATCHES "^arm64")
     set(openssl_arch darwin64-arm64-cc)
   else()
     set(openssl_arch darwin64-x86_64-cc)
+  endif()
+endif()
+
+if(APPLE)
+  if (ARCH_TRIPLET MATCHES "^arm64")
+    set(SODIUM_CONFIG_HOST arm-apple-darwin20)
+    set(ZMQ_CONFIG_HOST arm-apple-darwin)
+  else()
+    set(SODIUM_CONFIG_HOST x86_64-apple-darwin10)
+    set(ZMQ_CONFIG_HOST x86_64-apple-darwin)
   endif()
 endif()
 
@@ -285,7 +295,7 @@ endif()
 if (APPLE)
   build_external(openssl
     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CC=${deps_cc} ${openssl_system_env} ./Configure
-      ${openssl_arch} no-asm enable-rc5 zlib
+      ${openssl_arch} no-asm no-rc5 no-zlib
       --prefix=${DEPS_DESTDIR} --libdir=lib ${openssl_extra_opts}
       no-shared no-capieng no-dso no-dtls1 no-ec_nistp_64_gcc_128 no-gost
       no-md2 no-rdrand no-rfc3779 no-sctp no-ssl-trace no-ssl3
@@ -303,7 +313,7 @@ else()
       no-shared no-capieng no-dso no-dtls1 no-ec_nistp_64_gcc_128 no-gost
       no-md2 no-rc5 no-rdrand no-rfc3779 no-sctp no-ssl-trace no-ssl3
       no-static-engine no-tests no-weak-ssl-ciphers no-zlib no-zlib-dynamic ${openssl_flags}
-      ${openssl_arch} ${apple_silicon_extraopts}
+      ${openssl_arch}
   BUILD_COMMAND ${CMAKE_COMMAND} -E env ${openssl_system_env} ${_make}
   INSTALL_COMMAND ${_make} install_sw
   BUILD_BYPRODUCTS
@@ -353,15 +363,9 @@ else()
 endif()
 
 if(APPLE)
-  if (ARCH_TRIPLET MATCHES "^[arm64]")
-    build_external(sodium CONFIGURE_COMMAND ./configure --host=arm-apple-darwin20 --prefix=${DEPS_DESTDIR} --disable-shared
-            --enable-static --enable-minimal "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}"
-            "LDFLAGS=${deps_ld}")
-  else()
-    build_external(sodium CONFIGURE_COMMAND ./configure --host=x86_64-apple-darwin10 ${cross_rc} --prefix=${DEPS_DESTDIR} --disable-shared
-            --enable-static --enable-minimal "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}"
-            "LDFLAGS=${deps_ld}")
-  endif()
+  build_external(sodium CONFIGURE_COMMAND ./configure --host=${SODIUM_CONFIG_HOST} --prefix=${DEPS_DESTDIR} --disable-shared
+          --enable-static --enable-minimal "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}"
+          "LDFLAGS=${deps_ld}")
 else()
   build_external(sodium CONFIGURE_COMMAND ./configure ${cross_host} ${cross_rc} --prefix=${DEPS_DESTDIR} --disable-shared
           --enable-static --with-pic "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}")
@@ -393,7 +397,7 @@ endif()
 build_external(zmq
   DEPENDS sodium_external
   ${zmq_patch}
-  CONFIGURE_COMMAND ./configure ${cross_host} --prefix=${DEPS_DESTDIR} --enable-static --disable-shared
+  CONFIGURE_COMMAND ./configure --host=${ZMQ_CONFIG_HOST} --prefix=${DEPS_DESTDIR} --enable-static --disable-shared
     --disable-curve-keygen --enable-curve --disable-drafts --disable-libunwind --with-libsodium
     --without-pgm --without-norm --without-vmci --without-docs --with-pic --disable-Werror --disable-libbsd ${zmq_extra}
     "CC=${deps_cc}" "CXX=${deps_cxx}" "CFLAGS=${deps_CFLAGS} -fstack-protector" "CXXFLAGS=${deps_CXXFLAGS} -fstack-protector"
