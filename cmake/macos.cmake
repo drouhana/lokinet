@@ -2,7 +2,6 @@ if(NOT APPLE)
   return()
 endif()
 
-
 option(MACOS_SYSTEM_EXTENSION
   "Build the network extension as a system extension rather than a plugin.  This must be ON for non-app store release builds, and must be OFF for dev builds and Mac App Store distribution builds"
   OFF)
@@ -16,6 +15,8 @@ set(CODESIGN_PROFILE "${PROJECT_SOURCE_DIR}/contrib/macos/lokinet.${default_prof
   "Path to a .provisionprofile to use for the main app")
 set(CODESIGN_EXT_PROFILE "${PROJECT_SOURCE_DIR}/contrib/macos/lokinet-extension.${default_profile_type}.provisionprofile" CACHE FILEPATH
   "Path to a .provisionprofile to use for the lokinet extension")
+
+set(CODESIGN OFF)
 
 if(CODESIGN AND NOT CODESIGN_ID)
   if(MACOS_SYSTEM_EXTENSION)

@@ -35,10 +35,9 @@ set(SQLITE3_HASH SHA3_256=7ee8f02b21edb4489df5082b5cf5b7ef47bcebcdb0e209bf14240d
 set(SODIUM_VERSION 1.0.18 CACHE STRING "libsodium version")
 set(SODIUM_MIRROR ${LOCAL_MIRROR}
   https://download.libsodium.org/libsodium/releases
-  https://github.com/jedisct1/libsodium/releases/download/${SODIUM_VERSION}-RELEASE
   CACHE STRING "libsodium mirror(s)")
-set(SODIUM_SOURCE libsodium-${SODIUM_VERSION}.tar.gz)
-set(SODIUM_HASH SHA512=17e8638e46d8f6f7d024fe5559eccf2b8baf23e143fadd472a7d29d228b186d86686a5e6920385fe2020729119a5f12f989c3a782afbd05a8db4819bb18666ef
+set(SODIUM_SOURCE libsodium-${SODIUM_VERSION}-stable.tar.gz)
+set(SODIUM_HASH SHA512=91f1a3b8237f356ccf4cd03487419018bbfbd053624d6afe4d8560ad7da3d8236ef8b827b1d97ee932c45145e69743613374b7195646e865de6077a402490541
   CACHE STRING "libsodium source hash")
 
 set(ZMQ_VERSION 4.3.4 CACHE STRING "libzmq version")
@@ -276,16 +275,10 @@ elseif(CMAKE_C_FLAGS MATCHES "-march=armv7")
 elseif(APPLE)
   if (ARCH_TRIPLET MATCHES "^arm64")
     set(openssl_arch darwin64-arm64-cc)
-  else()
-    set(openssl_arch darwin64-x86_64-cc)
-  endif()
-endif()
-
-if(APPLE)
-  if (ARCH_TRIPLET MATCHES "^arm64")
     set(SODIUM_CONFIG_HOST arm-apple-darwin20)
     set(ZMQ_CONFIG_HOST arm-apple-darwin)
   else()
+    set(openssl_arch darwin64-x86_64-cc)
     set(SODIUM_CONFIG_HOST x86_64-apple-darwin10)
     set(ZMQ_CONFIG_HOST x86_64-apple-darwin)
   endif()
@@ -363,9 +356,7 @@ else()
 endif()
 
 if(APPLE)
-  build_external(sodium CONFIGURE_COMMAND ./configure --host=${SODIUM_CONFIG_HOST} --prefix=${DEPS_DESTDIR} --disable-shared
-          --enable-static --enable-minimal "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}"
-          "LDFLAGS=${deps_ld}")
+  build_external(sodium CONFIGURE_COMMAND ./configure --prefix=${DEPS_DESTDIR} --disable-shared --enable-static)
 else()
   build_external(sodium CONFIGURE_COMMAND ./configure ${cross_host} ${cross_rc} --prefix=${DEPS_DESTDIR} --disable-shared
           --enable-static --with-pic "CC=${deps_cc}" "CFLAGS=${deps_CFLAGS}")
@@ -373,12 +364,10 @@ endif()
 
 add_static_target(sodium sodium_external libsodium.a)
 
-
 if(WITH_PEERSTATS_BACKEND)
   build_external(sqlite3)
   add_static_target(sqlite3 sqlite3_external libsqlite3.a)
 endif()
-
 
 if(ARCH_TRIPLET MATCHES mingw)
   option(WITH_WEPOLL "use wepoll zmq poller (crashy)" OFF)

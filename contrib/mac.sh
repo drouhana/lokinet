@@ -29,22 +29,6 @@ for ARCH in arm64 x86_64; do
         -DARCH_TRIPLET="$ARCH-apple-darwin" \
         -DCMAKE_OSX_ARCHITECTURE=$ARCH
 
-    #if [ "$(uname -m)" == "$ARCH" ]; then
-    #    echo "Building for macOS [ $ARCH ] in $BUILDDIR" >&2
-    #    ./contrib/mac-configure.sh "$BUILDDIR" \
-    #        -DCMAKE_SYSTEM_NAME=Darwin \
-    #        -DARCH_TRIPLET="$ARCH-apple-darwin" \
-    #        -DCMAKE_OSX_ARCHITECTURE=$ARCH
-    #else
-    #    echo "Cross-compiling for macOS [ $ARCH ] in $BUILDDIR" >&2
-    #    ./contrib/mac-configure.sh "$BUILDDIR"
-    #fi
-
-    # extra parameters are meant for cross-compiling
-    # TODO:
-    #   - try with no LTO at all
-    #   - check apple specific build code
-
     cd "$BUILDDIR"
     rm -rf Lokinet\ *
     ninja -v -j${JOBS:-1} dmg
@@ -54,3 +38,5 @@ for ARCH in arm64 x86_64; do
     ls -lad $PWD/$BUILDDIR/Lokinet\ *
     echo ""
 done
+
+mkdir -p "$BUILDDIR/mac"
