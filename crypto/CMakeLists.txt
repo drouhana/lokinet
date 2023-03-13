@@ -63,4 +63,3 @@ if (WARNINGS_AS_ERRORS)
 endif()
 
 target_link_libraries(lokinet-cryptography PUBLIC sodium)
-

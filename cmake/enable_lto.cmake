@@ -1,7 +1,8 @@
 # -flto
 include(CheckIPOSupported)
 
-if(WIN32 OR ANDROID OR IOS OR (APPLE AND (ARCH_TRIPLET MATCHES "^arm64")))
+#if(WIN32 OR ANDROID OR IOS OR (APPLE AND (ARCH_TRIPLET MATCHES "^arm64")))
+if(WIN32 OR ANDROID OR IOS OR APPLE)
   set(with_lto_default OFF)
 else()
   set(with_lto_default ON)

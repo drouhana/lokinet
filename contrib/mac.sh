@@ -23,20 +23,31 @@ set -x
 for ARCH in arm64 x86_64; do
     BUILDDIR="build-mac/$ARCH"
 
-    if [ "$(uname -m)" == "$ARCH" ]; then
-        echo "Building for macOS [ $ARCH ] in $BUILDDIR" >&2
-        ./contrib/mac-configure.sh "$BUILDDIR" \
-            -DCMAKE_SYSTEM_NAME=Darwin \
-            -DARCH_TRIPLET="$ARCH-apple-darwin" \
-            -DCMAKE_OSX_ARCHITECTURE=$ARCH
-    else
-        echo "Cross-compiling for macOS [ $ARCH ] in $BUILDDIR" >&2
-        ./contrib/mac-configure.sh "$BUILDDIR"
-    fi
+    echo "Building for macOS [ $ARCH ] in $BUILDDIR" >&2
+    ./contrib/mac-configure.sh "$BUILDDIR" \
+        -DCMAKE_SYSTEM_NAME=Darwin \
+        -DARCH_TRIPLET="$ARCH-apple-darwin" \
+        -DCMAKE_OSX_ARCHITECTURE=$ARCH
+
+    #if [ "$(uname -m)" == "$ARCH" ]; then
+    #    echo "Building for macOS [ $ARCH ] in $BUILDDIR" >&2
+    #    ./contrib/mac-configure.sh "$BUILDDIR" \
+    #        -DCMAKE_SYSTEM_NAME=Darwin \
+    #        -DARCH_TRIPLET="$ARCH-apple-darwin" \
+    #        -DCMAKE_OSX_ARCHITECTURE=$ARCH
+    #else
+    #    echo "Cross-compiling for macOS [ $ARCH ] in $BUILDDIR" >&2
+    #    ./contrib/mac-configure.sh "$BUILDDIR"
+    #fi
+
+    # extra parameters are meant for cross-compiling
+    # TODO:
+    #   - try with no LTO at all
+    #   - check apple specific build code
 
     cd "$BUILDDIR"
     rm -rf Lokinet\ *
-    ninja -j${JOBS:-1} dmg
+    ninja -v -j${JOBS:-1} dmg
     cd ../..
 
     echo -e "Build complete... app is here: \n"
