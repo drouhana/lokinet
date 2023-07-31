@@ -81,6 +81,8 @@ namespace llarp
     llarp::PubKey enckey;
     // public signing public key
     llarp::PubKey pubkey;
+    // TLS Cert
+    std::string tls_cert;
     // signature
     llarp::Signature signature;
     /// node nickname, yw kee
