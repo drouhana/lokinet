@@ -81,7 +81,6 @@ namespace llarp::uv
 
       auto addr = handle->sock();
       int r = getaddrinfo(addr.ip.c_str(), nullptr, &hints, &res);
-      int _r = uv_getaddrinfo(handle->parent(), );
 
       if (r)
       {
@@ -90,8 +89,6 @@ namespace llarp::uv
         return std::nullopt;
       }
 
-      if (auto rr = uv_ip4_name())
-      
       if (res->ai_family == AF_INET)
         return SockAddr{addr.ip, huint16_t{static_cast<uint16_t>(addr.port)}};
       if (res->ai_family == AF_INET6)
@@ -142,7 +139,8 @@ namespace llarp::uv
 
   loop::loop(size_t queue_size) : llarp::EventLoop{}, m_LogicCalls{queue_size}
   {
-    if (!(m_Impl = uvw::loop::create()))
+    m_Impl = uvw::loop::create();
+    if (!m_Impl)
       throw std::runtime_error{"Failed to construct libuv loop"};
 
 #ifdef LOKINET_DEBUG
@@ -156,7 +154,9 @@ namespace llarp::uv
 
     m_Run.store(true);
     m_nextID.store(0);
-    if (!(m_WakeUp = m_Impl->resource<uvw::async_handle>()))
+    m_WakeUp = m_Impl->resource<uvw::async_handle>();
+
+    if (!m_WakeUp)
       throw std::runtime_error{"Failed to create libuv async"};
     m_WakeUp->on<uvw::async_event>([this](const auto&, auto&) { tick_event_loop(); });
   }
@@ -248,50 +248,50 @@ namespace llarp::uv
   }
 
   bool
-  Loop::add_ticker(std::function<void(void)> func)
+  loop::add_ticker(std::function<void(void)> func)
   {
-    auto check = m_Impl->resource<uvw::CheckHandle>();
-    check->on<uvw::CheckEvent>([f = std::move(func)](auto&, auto&) { f(); });
+    auto check = m_Impl->resource<uvw::check_handle>();
+    check->on<uvw::check_event>([f = std::move(func)](auto&, auto&) { f(); });
     check->start();
     return true;
   }
 
   bool
-  Loop::add_network_interface(
+  loop::add_network_interface(
       std::shared_ptr<llarp::vpn::NetworkInterface> netif,
       std::function<void(llarp::net::IPPacket)> handler)
   {
 #ifdef __linux__
-    using event_t = uvw::PollEvent;
-    auto handle = m_Impl->resource<uvw::PollHandle>(netif->PollFD());
+    using event_t = uvw::poll_event;
+    auto handle = m_Impl->resource<uvw::poll_handle>(netif->PollFD());
 #else
     // we use a uv_prepare_t because it fires before blocking for new io events unconditionally
     // we want to match what linux does, using a uv_check_t does not suffice as the order of
     // operations is not what we need.
-    using event_t = uvw::PrepareEvent;
-    auto handle = m_Impl->resource<uvw::PrepareHandle>();
+    using event_t = uvw::prepare_event;
+    auto handle = m_Impl->resource<uvw::prepare_handle>();
 #endif
 
     if (!handle)
       return false;
 
-    handle->on<event_t>([netif = std::move(netif), handler = std::move(handler)](
-                            const event_t&, [[maybe_unused]] auto& handle) {
-      for (auto pkt = netif->ReadNextPacket(); true; pkt = netif->ReadNextPacket())
-      {
-        if (pkt.empty())
-          return;
-        if (handler)
-          handler(std::move(pkt));
-        // on windows/apple, vpn packet io does not happen as an io action that wakes up the event
-        // loop thus, we must manually wake up the event loop when we get a packet on our interface.
-        // on linux/android this is a nop
-        netif->MaybeWakeUpperLayers();
-      }
-    });
+    handle->on<event_t>(
+        [netif = std::move(netif), handler_func = std::move(handler)](const auto&, auto&) {
+          for (auto pkt = netif->ReadNextPacket(); true; pkt = netif->ReadNextPacket())
+          {
+            if (pkt.empty())
+              return;
+            if (handler_func)
+              handler_func(std::move(pkt));
+            // on windows/apple, vpn packet io does not happen as an io action that wakes up the
+            // event loop thus, we must manually wake up the event loop when we get a packet on our
+            // interface. on linux/android this is a nop
+            netif->MaybeWakeUpperLayers();
+          }
+        });
 
 #ifdef __linux__
-    handle->start(uvw::PollHandle::Event::READABLE);
+    handle->start(uvw::poll_handle::poll_event::READABLE);
 #else
     handle->start();
 #endif
@@ -300,7 +300,7 @@ namespace llarp::uv
   }
 
   void
-  Loop::call_soon(std::function<void(void)> f)
+  loop::call_soon(std::function<void(void)> f)
   {
     if (not m_EventLoopThreadID.has_value())
     {
@@ -320,12 +320,12 @@ namespace llarp::uv
   // Sets `handle` to a new uvw UDP handle, first initiating a close and then disowning the handle
   // if already set, allocating the resource, and setting the receive event on it.
   void
-  UDPHandle::reset_handle(uvw::Loop& loop)
+  UDPHandle::reset_handle(uvw::loop& loop)
   {
     if (handle)
       handle->close();
-    handle = loop.resource<uvw::UDPHandle>();
-    handle->on<uvw::UDPDataEvent>([this](auto& event, auto& /*handle*/) {
+    handle = loop.resource<uvw::udp_handle>();
+    handle->on<uvw::udp_data_event>([this](auto& event, auto& /*handle*/) {
       on_recv(
           *this,
           SockAddr{event.sender.ip, huint16_t{static_cast<uint16_t>(event.sender.port)}},
@@ -342,9 +342,9 @@ namespace llarp::uv
   UDPHandle::listen(const SockAddr& addr)
   {
     if (handle->active())
-      reset_handle(handle->loop());
+      reset_handle(handle->parent());
 
-    handle->once<uvw::error_event>([addr](auto& event, auto&) {
+    handle->on<uvw::error_event>([addr](auto& event, auto&) {
       throw llarp::util::bind_socket_error{
           fmt::format("failed to bind udp socket on {}: {}", addr, event.what())};
     });
@@ -356,7 +356,7 @@ namespace llarp::uv
   bool
   UDPHandle::send(const SockAddr& to, const llarp_buffer_t& buf)
   {
-    return handle->trySend(
+    return handle->try_send(
                *static_cast<const sockaddr*>(to),
                const_cast<char*>(reinterpret_cast<const char*>(buf.base)),
                buf.sz)
@@ -376,20 +376,20 @@ namespace llarp::uv
   }
 
   std::shared_ptr<llarp::EventLoopWakeup>
-  Loop::make_waker(std::function<void()> callback)
+  loop::make_waker(std::function<void()> callback)
   {
     return std::static_pointer_cast<llarp::EventLoopWakeup>(
         std::make_shared<UVWakeup>(*m_Impl, std::move(callback)));
   }
 
   std::shared_ptr<EventLoopRepeater>
-  Loop::make_repeater()
+  loop::make_repeater()
   {
     return std::static_pointer_cast<EventLoopRepeater>(std::make_shared<UVRepeater>(*m_Impl));
   }
 
   bool
-  Loop::inEventLoop() const
+  loop::inEventLoop() const
   {
     if (m_EventLoopThreadID)
       return *m_EventLoopThreadID == std::this_thread::get_id();

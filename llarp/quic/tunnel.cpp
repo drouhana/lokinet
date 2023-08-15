@@ -18,7 +18,7 @@ namespace llarp::quic
   {
     // Takes data from the tcp connection and pushes it down the quic tunnel
     void
-    on_outgoing_data(uvw::DataEvent& event, uvw::TCPHandle& client)
+    on_outgoing_data(uvw::data_event& event, uvw::tcp_handle& client)
     {
       auto stream = client.data<Stream>();
       assert(stream);
@@ -35,7 +35,7 @@ namespace llarp::quic
             " bytes in flight); pausing local tcp connection reads");
         client.stop();
         stream->when_available([](Stream& s) {
-          auto client = s.data<uvw::TCPHandle>();
+          auto client = s.data<uvw::tcp_handle>();
           if (s.used() < tunnel::PAUSE_SIZE)
           {
             LogDebug("quic tunnel is no longer congested; resuming tcp connection reading");
@@ -55,7 +55,7 @@ namespace llarp::quic
     void
     on_incoming_data(Stream& stream, bstring_view bdata)
     {
-      auto tcp = stream.data<uvw::TCPHandle>();
+      auto tcp = stream.data<uvw::tcp_handle>();
       if (!tcp)
         return;  // TCP connection is gone, which would have already sent a stream close, so just
                  // drop it.
@@ -69,7 +69,7 @@ namespace llarp::quic
 
       // Try first to write immediately from the existing buffer to avoid needing an
       // allocation and copy:
-      auto written = tcp->tryWrite(const_cast<char*>(data.data()), data.size());
+      auto written = tcp->try_write(const_cast<char*>(data.data()), data.size());
       if (written < (int)data.size())
       {
         data.remove_prefix(written);
@@ -83,7 +83,7 @@ namespace llarp::quic
     void
     close_tcp_pair(quic::Stream& st, std::optional<uint64_t> /*errcode*/)
     {
-      if (auto tcp = st.data<uvw::TCPHandle>())
+      if (auto tcp = st.data<uvw::tcp_handle>())
       {
         LogTrace("Closing TCP connection");
         tcp->close();
@@ -92,14 +92,14 @@ namespace llarp::quic
     // Creates a new tcp handle that forwards incoming data/errors/closes into appropriate actions
     // on the given quic stream.
     void
-    install_stream_forwarding(uvw::TCPHandle& tcp, Stream& stream)
+    install_stream_forwarding(uvw::tcp_handle& tcp, Stream& stream)
     {
       tcp.data(stream.shared_from_this());
       stream.weak_data(tcp.weak_from_this());
 
-      tcp.clear();  // Clear any existing initial event handlers
+      tcp.reset();  // Clear any existing initial event handlers
 
-      tcp.on<uvw::CloseEvent>([](auto&, uvw::TCPHandle& c) {
+      tcp.on<uvw::close_event>([](auto&, uvw::tcp_handle& c) {
         // This fires sometime after we call `close()` to signal that the close is done.
         if (auto stream = c.data<Stream>())
         {
@@ -109,12 +109,12 @@ namespace llarp::quic
         }
         c.data(nullptr);
       });
-      tcp.on<uvw::EndEvent>([](auto&, uvw::TCPHandle& c) {
+      tcp.on<uvw::end_event>([](auto&, uvw::tcp_handle& c) {
         // This fires on eof, most likely because the other side of the TCP connection closed it.
         LogInfo("EOF on connection to ", c.peer().ip, ":", c.peer().port);
         c.close();
       });
-      tcp.on<uvw::ErrorEvent>([](const uvw::ErrorEvent& e, uvw::TCPHandle& tcp) {
+      tcp.on<uvw::error_event>([](const uvw::error_event& e, uvw::tcp_handle& tcp) {
         LogError(
             "ErrorEvent[",
             e.name(),
@@ -133,7 +133,7 @@ namespace llarp::quic
         }
         // tcp.closeReset();
       });
-      tcp.on<uvw::DataEvent>(on_outgoing_data);
+      tcp.on<uvw::data_event>(on_outgoing_data);
       stream.data_callback = on_incoming_data;
       stream.close_callback = close_tcp_pair;
     }
@@ -145,12 +145,12 @@ namespace llarp::quic
     // If the initial byte checks out we replace this handler with the regular stream handler (and
     // forward the rest of the data to it if we got more than just the single byte).
     void
-    initial_client_data_handler(uvw::TCPHandle& client, Stream& stream, bstring_view bdata)
+    initial_client_data_handler(uvw::tcp_handle& client, Stream& stream, bstring_view bdata)
     {
       LogTrace("initial client handler; data: ", buffer_printer{bdata});
       if (bdata.empty())
         return;
-      client.clear();  // Clear these initial event handlers: we either set up the proper ones, or
+      client.reset();  // Clear these initial event handlers: we either set up the proper ones, or
                        // close
 
       if (auto b0 = bdata[0]; b0 == tunnel::CONNECT_INIT)
@@ -261,7 +261,7 @@ namespace llarp::quic
       LogInfo("quic stream from ", lokinet_addr, " to ", port, " tunnelling to ", *tunnel_to);
 
       auto tcp = get_loop()->resource<uvw::tcp_handle>();
-      [[maybe_unused]] auto error_handler = tcp->once<uvw::error_event>(
+      tcp->on<uvw::error_event>(
           [&stream, to = *tunnel_to](const uvw::error_event&, uvw::tcp_handle&) {
             LogWarn("Failed to connect to ", to, ", shutting down quic stream");
             stream.close(tunnel::ERROR_CONNECT);
@@ -270,7 +270,7 @@ namespace llarp::quic
       // As soon as we connect to the local tcp tunnel port we fire a CONNECT_INIT down the stream
       // tunnel to let the other end know the connection was successful, then set up regular
       // stream handling to handle any other to/from data.
-      tcp->once<uvw::connect_event>(
+      tcp->on<uvw::connect_event>(
           [streamw = stream.weak_from_this()](const uvw::connect_event&, uvw::tcp_handle& tcp) {
             auto peer = tcp.peer();
             auto stream = streamw.lock();
@@ -360,7 +360,7 @@ namespace llarp::quic
     return std::nullopt;
   }
 
-  std::shared_ptr<uvw::Loop>
+  std::shared_ptr<uvw::loop>
   TunnelManager::get_loop()
   {
     if (auto loop = service_endpoint_.Loop()->MaybeGetUVWLoop())
@@ -444,32 +444,31 @@ namespace llarp::quic
     // an initial request (rather than having to wait via a callback before connecting).  It also
     // makes sure we can actually listen on the given address before we go ahead with establishing
     // the quic connection.
-    auto tcp_tunnel = get_loop()->resource<uvw::TCPHandle>();
+    auto tcp_tunnel = get_loop()->resource<uvw::tcp_handle>();
     const char* failed = nullptr;
-    auto err_handler =
-        tcp_tunnel->once<uvw::ErrorEvent>([&failed](auto& evt, auto&) { failed = evt.what(); });
+    tcp_tunnel->on<uvw::error_event>([&failed](auto& evt, auto&) { failed = evt.what(); });
     tcp_tunnel->bind(*bind_addr.operator const sockaddr*());
-    tcp_tunnel->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& tcp_tunnel) {
-      auto client = tcp_tunnel.loop().resource<uvw::TCPHandle>();
-      tcp_tunnel.accept(*client);
-      // Freeze the connection (after accepting) because we may need to stall it until a stream
-      // becomes available; flush_pending_incoming will unfreeze it.
-      client->stop();
-      auto pport = tcp_tunnel.data<uint16_t>();
-      if (pport)
-      {
-        if (auto it = client_tunnels_.find(*pport); it != client_tunnels_.end())
-        {
-          it->second.pending_incoming.emplace(std::move(client));
-          flush_pending_incoming(it->second);
-          return;
-        }
-        tcp_tunnel.data(nullptr);
-      }
-      client->close();
-    });
+    tcp_tunnel->on<uvw::listen_event>(
+        [this](const uvw::listen_event&, uvw::tcp_handle& tcp_tunnel) {
+          auto client = tcp_tunnel.parent().resource<uvw::tcp_handle>();
+          tcp_tunnel.accept(*client);
+          // Freeze the connection (after accepting) because we may need to stall it until a stream
+          // becomes available; flush_pending_incoming will unfreeze it.
+          client->stop();
+          auto pport = tcp_tunnel.data<uint16_t>();
+          if (pport)
+          {
+            if (auto it = client_tunnels_.find(*pport); it != client_tunnels_.end())
+            {
+              it->second.pending_incoming.emplace(std::move(client));
+              flush_pending_incoming(it->second);
+              return;
+            }
+            tcp_tunnel.data(nullptr);
+          }
+          client->close();
+        });
     tcp_tunnel->listen();
-    tcp_tunnel->erase(err_handler);
 
     if (failed)
     {
@@ -569,7 +568,7 @@ namespace llarp::quic
     {
       if (auto tcp = pending_incoming.front().lock())
       {
-        tcp->clear();
+        tcp->reset();
         tcp->close();
       }
       pending_incoming.pop();

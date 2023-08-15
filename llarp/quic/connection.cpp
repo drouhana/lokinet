@@ -357,11 +357,11 @@ namespace llarp::quic
   Connection::init()
   {
     auto loop = endpoint.get_loop();
-    io_trigger = loop->resource<uvw::AsyncHandle>();
-    io_trigger->on<uvw::AsyncEvent>([this](auto&, auto&) { on_io_ready(); });
+    io_trigger = loop->resource<uvw::async_handle>();
+    io_trigger->on<uvw::async_event>([this](auto&, auto&) { on_io_ready(); });
 
-    retransmit_timer = loop->resource<uvw::TimerHandle>();
-    retransmit_timer->on<uvw::TimerEvent>([this](auto&, auto&) {
+    retransmit_timer = loop->resource<uvw::timer_handle>();
+    retransmit_timer->on<uvw::timer_event>([this](auto&, auto&) {
       LogTrace("Retransmit timer fired!");
       if (auto rv = ngtcp2_conn_handle_expiry(*this, get_timestamp()); rv != 0)
       {

@@ -150,12 +150,12 @@ namespace llarp::quic
     init();
 
     // Event trigger used to queue packet processing for this connection
-    std::shared_ptr<uvw::AsyncHandle> io_trigger;
+    std::shared_ptr<uvw::async_handle> io_trigger;
 
     // Schedules a retransmit in the event loop (according to when ngtcp2 tells us we should)
     void
     schedule_retransmit();
-    std::shared_ptr<uvw::TimerHandle> retransmit_timer;
+    std::shared_ptr<uvw::timer_handle> retransmit_timer;
 
     // The port the client wants to connect to on the server
     uint16_t tunnel_port = 0;

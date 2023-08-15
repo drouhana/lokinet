@@ -195,7 +195,7 @@ namespace llarp::quic
     std::map<int, ListenHandler> incoming_handlers_;
     int next_handler_id_ = 1;
 
-    std::shared_ptr<uvw::Loop>
+    std::shared_ptr<uvw::loop>
     get_loop();
 
     // Cleanup member

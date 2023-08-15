@@ -40,7 +40,7 @@ namespace llarp::quic
       expiry_timer->close();
   }
 
-  std::shared_ptr<uvw::Loop>
+  std::shared_ptr<uvw::loop>
   Endpoint::get_loop()
   {
     auto loop = service_endpoint.Loop()->MaybeGetUVWLoop();

@@ -396,8 +396,8 @@ namespace llarp::dns
           if (auto loop_ptr = loop->MaybeGetUVWLoop())
           {
             m_Poller = loop_ptr->resource<uvw::poll_handle>(ub_fd(m_ctx));
-            m_Poller->on<uvw::poll_event>([this](auto&, auto&) { ub_process(m_ctx); });
-            m_Poller->start(uvw::poll_handle::poll_event_flags::READABLE);
+            m_Poller->on<uvw::poll_event>([this](const auto&, auto&) { ub_process(m_ctx); });
+            m_Poller->start(uvw::poll_handle::poll_event::READABLE);
             return;
           }
         }

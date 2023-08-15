@@ -46,7 +46,7 @@ namespace llarp::quic
     receive_packet(const SockAddr& src, uint8_t ecn, bstring_view data);
 
     /// Returns a shared pointer to the uvw loop.
-    std::shared_ptr<uvw::Loop>
+    std::shared_ptr<uvw::loop>
     get_loop();
 
    protected:

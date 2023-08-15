@@ -360,7 +360,7 @@ namespace llarp::quic
 
     // Async trigger we use to schedule when_available callbacks (so that we can make them happen in
     // batches rather than after each and every packet ack).
-    std::shared_ptr<uvw::AsyncHandle> avail_trigger;
+    std::shared_ptr<uvw::async_handle> avail_trigger;
 
     std::variant<std::shared_ptr<void>, std::weak_ptr<void>> user_data;
   };
