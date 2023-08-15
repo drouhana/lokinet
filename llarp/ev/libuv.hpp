@@ -18,14 +18,14 @@ namespace llarp::uv
   class UVWakeup;
   class UVRepeater;
 
-  class Loop : public llarp::EventLoop
+  class loop : public llarp::EventLoop
   {
    public:
     using Callback = std::function<void()>;
 
-    Loop(size_t queue_size);
+    loop(size_t queue_size);
 
-    virtual void
+    void
     run() override;
 
     bool
@@ -63,24 +63,24 @@ namespace llarp::uv
     std::shared_ptr<EventLoopRepeater>
     make_repeater() override;
 
-    virtual std::shared_ptr<llarp::UDPHandle>
+    std::shared_ptr<llarp::UDPHandle>
     make_udp(UDPReceiveFunc on_recv) override;
 
     void
     FlushLogic();
 
-    std::shared_ptr<uvw::Loop>
+    std::shared_ptr<uvw::loop>
     MaybeGetUVWLoop() override;
 
     bool
     inEventLoop() const override;
 
    protected:
-    std::shared_ptr<uvw::Loop> m_Impl;
+    std::shared_ptr<uvw::loop> m_Impl;
     std::optional<std::thread::id> m_EventLoopThreadID;
 
    private:
-    std::shared_ptr<uvw::AsyncHandle> m_WakeUp;
+    std::shared_ptr<uvw::async_handle> m_WakeUp;
     std::atomic<bool> m_Run;
     using AtomicQueue_t = llarp::thread::Queue<std::function<void(void)>>;
     AtomicQueue_t m_LogicCalls;
@@ -93,7 +93,7 @@ namespace llarp::uv
 
     std::map<uint32_t, Callback> m_pendingCalls;
 
-    std::unordered_map<int, std::shared_ptr<uvw::PollHandle>> m_Polls;
+    std::unordered_map<int, std::shared_ptr<uvw::poll_handle>> m_Polls;
 
     void
     wakeup() override;

@@ -122,7 +122,7 @@ namespace llarp::dns
       std::thread runner;
       std::atomic<bool> running;
 #else
-      std::shared_ptr<uvw::PollHandle> m_Poller;
+      std::shared_ptr<uvw::poll_handle> m_Poller;
 #endif
 
       std::optional<SockAddr> m_LocalAddr;
@@ -395,9 +395,9 @@ namespace llarp::dns
         {
           if (auto loop_ptr = loop->MaybeGetUVWLoop())
           {
-            m_Poller = loop_ptr->resource<uvw::PollHandle>(ub_fd(m_ctx));
-            m_Poller->on<uvw::PollEvent>([this](auto&, auto&) { ub_process(m_ctx); });
-            m_Poller->start(uvw::PollHandle::Event::READABLE);
+            m_Poller = loop_ptr->resource<uvw::poll_handle>(ub_fd(m_ctx));
+            m_Poller->on<uvw::poll_event>([this](auto&, auto&) { ub_process(m_ctx); });
+            m_Poller->start(uvw::poll_handle::poll_event_flags::READABLE);
             return;
           }
         }

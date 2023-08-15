@@ -27,8 +27,8 @@ namespace llarp::quic
     randombytes_buf(static_secret.data(), static_secret.size());
 
     // Set up a callback every 250ms to clean up stale sockets, etc.
-    expiry_timer = get_loop()->resource<uvw::TimerHandle>();
-    expiry_timer->on<uvw::TimerEvent>([this](const auto&, auto&) { check_timeouts(); });
+    expiry_timer = get_loop()->resource<uvw::timer_handle>();
+    expiry_timer->on<uvw::timer_event>([this](const auto&, auto&) { check_timeouts(); });
     expiry_timer->start(250ms, 250ms);
 
     LogDebug("Created QUIC endpoint");

@@ -148,12 +148,12 @@ namespace llarp::quic
       // Callback to invoke on quic connection established (true argument) or failed (false arg)
       OpenCallback open_cb;
       // TCP listening socket
-      std::shared_ptr<uvw::TCPHandle> tcp;
+      std::shared_ptr<uvw::tcp_handle> tcp;
       // Accepted TCP connections
-      std::unordered_set<std::shared_ptr<uvw::TCPHandle>> conns;
+      std::unordered_set<std::shared_ptr<uvw::tcp_handle>> conns;
       // Queue of incoming connections that are waiting for a stream to become available (either
       // because we are still handshaking, or we reached the stream limit).
-      std::queue<std::weak_ptr<uvw::TCPHandle>> pending_incoming;
+      std::queue<std::weak_ptr<uvw::tcp_handle>> pending_incoming;
 
       ~ClientTunnel();
     };

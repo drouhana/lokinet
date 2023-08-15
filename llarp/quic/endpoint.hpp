@@ -58,7 +58,7 @@ namespace llarp::quic
     /// local pseudo-port, for clients, and 0 for a server.
     Address local_addr{in6addr_any};
 
-    std::shared_ptr<uvw::TimerHandle> expiry_timer;
+    std::shared_ptr<uvw::timer_handle> expiry_timer;
 
     std::vector<std::byte> buf;
     // Max theoretical size of a UDP packet is 2^16-1 minus IP/UDP header overhead

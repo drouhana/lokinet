@@ -12,21 +12,21 @@
 
 namespace llarp::uv
 {
-  std::shared_ptr<uvw::Loop>
-  Loop::MaybeGetUVWLoop()
+  std::shared_ptr<uvw::loop>
+  loop::MaybeGetUVWLoop()
   {
     return m_Impl;
   }
 
   class UVWakeup final : public EventLoopWakeup
   {
-    std::shared_ptr<uvw::AsyncHandle> async;
+    std::shared_ptr<uvw::async_handle> async;
 
    public:
-    UVWakeup(uvw::Loop& loop, std::function<void()> callback)
-        : async{loop.resource<uvw::AsyncHandle>()}
+    UVWakeup(uvw::loop& loop, std::function<void()> callback)
+        : async{loop.resource<uvw::async_handle>()}
     {
-      async->on<uvw::AsyncEvent>([f = std::move(callback)](auto&, auto&) { f(); });
+      async->on<uvw::async_event>([f = std::move(callback)](auto&, auto&) { f(); });
     }
 
     void
@@ -43,17 +43,17 @@ namespace llarp::uv
 
   class UVRepeater final : public EventLoopRepeater
   {
-    std::shared_ptr<uvw::TimerHandle> timer;
+    std::shared_ptr<uvw::timer_handle> timer;
 
    public:
-    UVRepeater(uvw::Loop& loop) : timer{loop.resource<uvw::TimerHandle>()}
+    UVRepeater(uvw::loop& loop) : timer{loop.resource<uvw::timer_handle>()}
     {}
 
     void
     start(llarp_time_t every, std::function<void()> task) override
     {
       timer->start(every, every);
-      timer->on<uvw::TimerEvent>([task = std::move(task)](auto&, auto&) { task(); });
+      timer->on<uvw::timer_event>([task = std::move(task)](auto&, auto&) { task(); });
     }
 
     ~UVRepeater() override
@@ -64,7 +64,7 @@ namespace llarp::uv
 
   struct UDPHandle final : llarp::UDPHandle
   {
-    UDPHandle(uvw::Loop& loop, ReceiveFunc rf);
+    UDPHandle(uvw::loop& loop, ReceiveFunc rf);
 
     bool
     listen(const SockAddr& addr) override;
@@ -75,9 +75,26 @@ namespace llarp::uv
     std::optional<SockAddr>
     LocalAddr() const override
     {
-      if (auto addr = handle->sock<uvw::IPv4>(); not addr.ip.empty())
+      struct addrinfo hints, *res = nullptr;
+      hints.ai_family = AF_UNSPEC;
+      hints.ai_flags = AI_NUMERICHOST;
+
+      auto addr = handle->sock();
+      int r = getaddrinfo(addr.ip.c_str(), nullptr, &hints, &res);
+      int _r = uv_getaddrinfo(handle->parent(), );
+
+      if (r)
+      {
+        // should this throw?
+        llarp::LogWarn("getaddrinfo failed to determine ipv4 vs ipv6 for ", addr.ip);
+        return std::nullopt;
+      }
+
+      if (auto rr = uv_ip4_name())
+      
+      if (res->ai_family == AF_INET)
         return SockAddr{addr.ip, huint16_t{static_cast<uint16_t>(addr.port)}};
-      if (auto addr = handle->sock<uvw::IPv6>(); not addr.ip.empty())
+      if (res->ai_family == AF_INET6)
         return SockAddr{addr.ip, huint16_t{static_cast<uint16_t>(addr.port)}};
       return std::nullopt;
     }
@@ -98,14 +115,14 @@ namespace llarp::uv
     ~UDPHandle() override;
 
    private:
-    std::shared_ptr<uvw::UDPHandle> handle;
+    std::shared_ptr<uvw::udp_handle> handle;
 
     void
-    reset_handle(uvw::Loop& loop);
+    reset_handle(uvw::loop& loop);
   };
 
   void
-  Loop::FlushLogic()
+  loop::FlushLogic()
   {
     llarp::LogTrace("Loop::FlushLogic() start");
     while (not m_LogicCalls.empty())
@@ -117,15 +134,15 @@ namespace llarp::uv
   }
 
   void
-  Loop::tick_event_loop()
+  loop::tick_event_loop()
   {
     llarp::LogTrace("ticking event loop.");
     FlushLogic();
   }
 
-  Loop::Loop(size_t queue_size) : llarp::EventLoop{}, m_LogicCalls{queue_size}
+  loop::loop(size_t queue_size) : llarp::EventLoop{}, m_LogicCalls{queue_size}
   {
-    if (!(m_Impl = uvw::Loop::create()))
+    if (!(m_Impl = uvw::loop::create()))
       throw std::runtime_error{"Failed to construct libuv loop"};
 
 #ifdef LOKINET_DEBUG
@@ -139,19 +156,19 @@ namespace llarp::uv
 
     m_Run.store(true);
     m_nextID.store(0);
-    if (!(m_WakeUp = m_Impl->resource<uvw::AsyncHandle>()))
+    if (!(m_WakeUp = m_Impl->resource<uvw::async_handle>()))
       throw std::runtime_error{"Failed to create libuv async"};
-    m_WakeUp->on<uvw::AsyncEvent>([this](const auto&, auto&) { tick_event_loop(); });
+    m_WakeUp->on<uvw::async_event>([this](const auto&, auto&) { tick_event_loop(); });
   }
 
   bool
-  Loop::running() const
+  loop::running() const
   {
     return m_Run.load();
   }
 
   void
-  Loop::run()
+  loop::run()
   {
     llarp::LogTrace("Loop::run_loop()");
     m_EventLoopThreadID = std::this_thread::get_id();
@@ -162,23 +179,23 @@ namespace llarp::uv
   }
 
   void
-  Loop::wakeup()
+  loop::wakeup()
   {
     m_WakeUp->send();
   }
 
   std::shared_ptr<llarp::UDPHandle>
-  Loop::make_udp(UDPReceiveFunc on_recv)
+  loop::make_udp(UDPReceiveFunc on_recv)
   {
     return std::static_pointer_cast<llarp::UDPHandle>(
         std::make_shared<llarp::uv::UDPHandle>(*m_Impl, std::move(on_recv)));
   }
 
   static void
-  setup_oneshot_timer(uvw::Loop& loop, llarp_time_t delay, std::function<void()> callback)
+  setup_oneshot_timer(uvw::loop& loop, llarp_time_t delay, std::function<void()> callback)
   {
-    auto timer = loop.resource<uvw::TimerHandle>();
-    timer->on<uvw::TimerEvent>([f = std::move(callback)](const auto&, auto& timer) {
+    auto timer = loop.resource<uvw::timer_handle>();
+    timer->on<uvw::timer_event>([f = std::move(callback)](const auto&, auto& timer) {
       f();
       timer.stop();
       timer.close();
@@ -187,7 +204,7 @@ namespace llarp::uv
   }
 
   void
-  Loop::call_later(llarp_time_t delay_ms, std::function<void(void)> callback)
+  loop::call_later(llarp_time_t delay_ms, std::function<void(void)> callback)
   {
     llarp::LogTrace("Loop::call_after_delay()");
 #ifdef TESTNET_SPEED
@@ -211,7 +228,7 @@ namespace llarp::uv
   }
 
   void
-  Loop::stop()
+  loop::stop()
   {
     if (m_Run)
     {
@@ -316,7 +333,7 @@ namespace llarp::uv
     });
   }
 
-  llarp::uv::UDPHandle::UDPHandle(uvw::Loop& loop, ReceiveFunc rf) : llarp::UDPHandle{std::move(rf)}
+  llarp::uv::UDPHandle::UDPHandle(uvw::loop& loop, ReceiveFunc rf) : llarp::UDPHandle{std::move(rf)}
   {
     reset_handle(loop);
   }
@@ -327,13 +344,12 @@ namespace llarp::uv
     if (handle->active())
       reset_handle(handle->loop());
 
-    auto err = handle->on<uvw::ErrorEvent>([addr](auto& event, auto&) {
+    handle->once<uvw::error_event>([addr](auto& event, auto&) {
       throw llarp::util::bind_socket_error{
           fmt::format("failed to bind udp socket on {}: {}", addr, event.what())};
     });
     handle->bind(*static_cast<const sockaddr*>(addr));
     handle->recv();
-    handle->erase(err);
     return true;
   }
 

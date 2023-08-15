@@ -184,7 +184,7 @@ namespace llarp::quic
     // failed):
     void
     initial_client_close_handler(
-        uvw::TCPHandle& client, Stream& /*stream*/, std::optional<uint64_t> error_code)
+        uvw::tcp_handle& client, Stream& /*stream*/, std::optional<uint64_t> error_code)
     {
       if (error_code && *error_code == tunnel::ERROR_CONNECT)
         LogDebug("Remote TCP connection failed, closing local connection");
@@ -195,11 +195,6 @@ namespace llarp::quic
             "; closing local TCP connection.");
       auto peer = client.peer();
       LogDebug("Closing connection to ", peer.ip, ":", peer.port);
-      client.clear();
-      // TOFIX: this logic
-      //   if (error_code)
-      // client.close();
-      //   else
       client.close();
     }
 
@@ -265,9 +260,9 @@ namespace llarp::quic
         return false;
       LogInfo("quic stream from ", lokinet_addr, " to ", port, " tunnelling to ", *tunnel_to);
 
-      auto tcp = get_loop()->resource<uvw::TCPHandle>();
-      [[maybe_unused]] auto error_handler = tcp->once<uvw::ErrorEvent>(
-          [&stream, to = *tunnel_to](const uvw::ErrorEvent&, uvw::TCPHandle&) {
+      auto tcp = get_loop()->resource<uvw::tcp_handle>();
+      [[maybe_unused]] auto error_handler = tcp->once<uvw::error_event>(
+          [&stream, to = *tunnel_to](const uvw::error_event&, uvw::tcp_handle&) {
             LogWarn("Failed to connect to ", to, ", shutting down quic stream");
             stream.close(tunnel::ERROR_CONNECT);
           });
@@ -275,8 +270,8 @@ namespace llarp::quic
       // As soon as we connect to the local tcp tunnel port we fire a CONNECT_INIT down the stream
       // tunnel to let the other end know the connection was successful, then set up regular
       // stream handling to handle any other to/from data.
-      tcp->once<uvw::ConnectEvent>(
-          [streamw = stream.weak_from_this()](const uvw::ConnectEvent&, uvw::TCPHandle& tcp) {
+      tcp->once<uvw::connect_event>(
+          [streamw = stream.weak_from_this()](const uvw::connect_event&, uvw::tcp_handle& tcp) {
             auto peer = tcp.peer();
             auto stream = streamw.lock();
             if (!stream)

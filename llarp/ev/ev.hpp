@@ -13,7 +13,7 @@
 
 namespace uvw
 {
-  class Loop;
+  class loop;
 }
 
 namespace llarp
@@ -217,7 +217,7 @@ namespace llarp
 
     // Returns the uvw::Loop *if* this event loop is backed by a uvw event loop (i.e. the default),
     // nullptr otherwise.  (This base class default always returns nullptr).
-    virtual std::shared_ptr<uvw::Loop>
+    virtual std::shared_ptr<uvw::loop>
     MaybeGetUVWLoop()
     {
       return nullptr;

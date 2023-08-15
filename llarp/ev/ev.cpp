@@ -14,7 +14,7 @@ namespace llarp
   EventLoop_ptr
   EventLoop::create(size_t queueLength)
   {
-    return std::make_shared<llarp::uv::Loop>(queueLength);
+    return std::make_shared<llarp::uv::loop>(queueLength);
   }
 
   const net::Platform*
