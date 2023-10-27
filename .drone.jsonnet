@@ -41,7 +41,7 @@ local kitware_repo(distro) = [
 local debian_backports(distro, pkgs) = [
   'echo "deb http://deb.debian.org/debian ' + distro + '-backports main" >/etc/apt/sources.list.d/' + distro + '-backports.list',
   'eatmydata ' + apt_get_quiet + ' update',
-  'eatmydata ' + apt_get_quiet + ' install ' + std.join(' ', std.map(function(x) x + '/' + distro + '-backports', pkgs)),
+  'eatmydata ' + apt_get_quiet + ' install -y ' + std.join(' ', std.map(function(x) x + '/' + distro + '-backports', pkgs)),
 ];
 
 // Regular build on a debian-like system:
