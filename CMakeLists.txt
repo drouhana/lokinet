@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.13...3.24)  # 3.13 is buster's version
 
-cmake_policy(SET CMP0135 OFF) # cmake 3.24+ breaks extraction timestamps by default, hurray
+# Cmake 3.24+ breaks extraction timestamps by default, hurray, but the option to not break
+# timestamps fails in cmake <3.24, extra hurray!
+cmake_policy(SET CMP0135 OLD)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
