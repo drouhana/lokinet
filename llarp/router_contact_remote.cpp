@@ -11,32 +11,12 @@
 
 namespace llarp
 {
-  RemoteRC::RemoteRC(oxenc::bt_dict_consumer btdc)
+  RemoteRC::RemoteRC(oxenc::bt_dict_consumer btdc, bool is_bootstrap)
   {
     try
     {
       bt_load(btdc);
-
-      btdc.require_signature("~", [this](ustring_view msg, ustring_view sig) {
-        if (sig.size() != 64)
-          throw std::runtime_error{"Invalid signature: not 64 bytes"};
-
-        if (is_expired(time_now_ms()))
-          throw std::runtime_error{"Unable to verify expired RemoteRC!"};
-
-        // TODO: revisit if this is needed; detail from previous implementation
-        const auto* net = net::Platform::Default_ptr();
-
-        if (net->IsBogon(addr().in4()) and BLOCK_BOGONS)
-        {
-          auto err = "Unable to verify expired RemoteRC!";
-          log::info(logcat, err);
-          throw std::runtime_error{err};
-        }
-
-        if (not crypto::verify(router_id(), msg, sig))
-          throw std::runtime_error{"Failed to verify RemoteRC"};
-      });
+      bt_verify(btdc, not is_bootstrap);
     }
     catch (const std::exception& e)
     {

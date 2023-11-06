@@ -987,9 +987,9 @@ namespace llarp
             "public IP address and use that IP (and will exit with an error if no such IP is found",
             "on the system).  If port is omitted then lokinet defaults to 1090.",
             "",
-            "Note: only one address will be accepted. If this option is not specified, it will "
+            "Note: only one address will be accepted. If this option is not specified, it will ",
             "default",
-            "to the inbound or outbound value. Conversely, specifying this option will supercede "
+            "to the inbound or outbound value. Conversely, specifying this option will supercede ",
             "the",
             "deprecated inbound/outbound opts.",
             "",

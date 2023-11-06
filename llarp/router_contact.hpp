@@ -320,7 +320,7 @@ namespace llarp
     {
       _payload = data;
     }
-    explicit RemoteRC(oxenc::bt_dict_consumer btdc);
+    explicit RemoteRC(oxenc::bt_dict_consumer btdc, bool is_bootstrap = false);
     ~RemoteRC() = default;
 
     std::string_view
