@@ -380,7 +380,7 @@ namespace llarp
       llarp::logRingBuffer = nullptr;
 
     // TESTNET:
-    oxen::log::set_level("quic", oxen::log::Level::critical);
+    oxen::log::set_level("quic", oxen::log::Level::debug);
 
     log::debug(logcat, "Configuring router");
 

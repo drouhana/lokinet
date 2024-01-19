@@ -12,8 +12,8 @@
 #include <llarp/util/time.hpp>
 
 #include <nlohmann/json.hpp>
+#include <oxen/quic.hpp>
 #include <oxenc/bt_producer.h>
-#include <quic.hpp>
 
 #include <functional>
 #include <vector>
