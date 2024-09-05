@@ -104,31 +104,31 @@ namespace llarp
         bool is_cooling_down() const { return _is_cooling_down; }
     };
 
-    /** EventPoller
+    /** EventWatcher
             This class is a similar implementation to EventTrigger and Ticker, with a few key differences in relation to
         the net interfaces it manages. First, we don't want the execution of the logic to be tied to a specific timer or
         fixed interval. Rather, this will be event triggered on packet I/O. As a result, this necessitates the second
         key difference: it uses a libevent "prepare" watcher to fire immediately BEFORE polling for I/O. Libevent also
         exposes the concept of a "check" watcher, which fires immediately AFTER processing active events.
      */
-    struct EventPoller
+    struct EventWatcher
     {
         friend class oxen::quic::Loop;
 
       private:
-        EventPoller(const loop_ptr& _loop, std::function<void()> task);
+        EventWatcher(const loop_ptr& _loop, std::function<void()> task);
 
       public:
-        static std::shared_ptr<EventPoller> make(const std::shared_ptr<EventLoop>& _loop, std::function<void()> task);
+        static std::shared_ptr<EventWatcher> make(const std::shared_ptr<EventLoop>& _loop, std::function<void()> task);
 
         // No move/copy/etc
-        EventPoller() = delete;
-        EventPoller(const EventTrigger&) = delete;
-        EventPoller(EventPoller&&) = delete;
-        EventPoller& operator=(const EventPoller&) = delete;
-        EventPoller& operator=(EventPoller&&) = delete;
+        EventWatcher() = delete;
+        EventWatcher(const EventTrigger&) = delete;
+        EventWatcher(EventWatcher&&) = delete;
+        EventWatcher& operator=(const EventWatcher&) = delete;
+        EventWatcher& operator=(EventWatcher&&) = delete;
 
-        ~EventPoller();
+        ~EventWatcher();
 
       private:
         watch_ptr pv;

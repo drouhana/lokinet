@@ -377,23 +377,20 @@ namespace llarp::handlers
         _if_name = _net_if->interface_info().ifname;
         log::info(logcat, "{} got network interface:{}", name(), _if_name);
 
-        auto if_hook = [netif = _net_if, pktrouter = _packet_router]() mutable {
-            auto pkt = netif->read_next_packet();
+        auto netif_hook = [netif = _net_if, pktrouter = _packet_router]() mutable {
+            log::info(logcat, "wassup");
+            // auto pkt = netif->read_next_packet();
 
-            while (not pkt.empty())
-            {
-                pktrouter->handle_ip_packet(std::move(pkt));
-                pkt = netif->read_next_packet();
-            }
+            // while (not pkt.empty())
+            // {
+            //     pktrouter->handle_ip_packet(std::move(pkt));
+            //     pkt = netif->read_next_packet();
+            // }
         };
 
-        auto handle_packet = [netif = _net_if, pktrouter = _packet_router](IPPacket pkt) {
-            // TODO: packets used to have reply hooks
-            // pkt.reply = [netif](auto pkt) { netif->write_packet(std::move(pkt)); };
-            pktrouter->handle_ip_packet(std::move(pkt));
-        };
+        _pkt_watcher = EventWatcher::make(router().loop(), std::move(netif_hook));
 
-        if (not router().loop()->add_network_interface(_net_if, std::move(handle_packet)))
+        if (not _pkt_watcher)
         {
             auto err = "{} failed to add network interface!"_format(name());
             log::error(logcat, "{}", err);
@@ -416,6 +413,9 @@ namespace llarp::handlers
         log::info(
             logcat, "{} has interface ipv4 address ({}) with ipv6 address ({})", name(), _local_addr, _local_ipv6);
 
+
+        setup_dns();
+
         // if (auto* quic = GetQUICTunnel())
         // {
         // TODO:
@@ -423,8 +423,6 @@ namespace llarp::handlers
         //   return llarp::SockAddr{net::TruncateV6(GetIfAddr()), huint16_t{port}};
         // });
         // }
-
-        setup_dns();
     }
 
     static bool is_random_snode(const dns::Message& msg)

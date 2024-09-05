@@ -19,17 +19,9 @@ namespace llarp
         log::info(logcat, "lokinet loop shut down {}", _close_immediately ? "immediately" : "gracefully");
     }
 
-    bool EventLoop::add_network_interface(std::shared_ptr<vpn::NetworkInterface> netif, ip_pkt_hook handler)
+    std::shared_ptr<EventWatcher> EventLoop::make_poll_watcher(std::function<void()> func)
     {
-        (void)netif;
-        (void)handler;
-
-#ifdef __linux__
-        //
-#else
-        //
-#endif
-        return true;
+        return _loop->template make_shared<EventWatcher>(_loop->loop(), std::move(func));
     }
 
     void EventLoop::stop(bool)

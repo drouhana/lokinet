@@ -595,9 +595,7 @@ namespace llarp
     void Router::init_tun()
     {
         if (_tun = std::make_unique<handlers::TunEndpoint>(*this); _tun != nullptr)
-        {
             _tun->configure();
-        }
         else
             throw std::runtime_error{"Failed to construct TunEndpoint API!"};
     }
@@ -1028,7 +1026,7 @@ namespace llarp
 
         log::debug(logcat, "Creating Router::Tick() repeating event...");
         _loop_ticker = _loop->call_every(
-            ROUTER_TICK_INTERVAL, [this] { tick(); }, false);
+            ROUTER_TICK_INTERVAL, [this] { tick(); }, true);
 
         _is_running.store(true);
 
@@ -1171,6 +1169,12 @@ namespace llarp
         auto rv = _loop_ticker->stop();
         log::debug(logcat, "router loop ticker stopped {}successfully!", rv ? "" : "un");
         _loop_ticker.reset();
+
+        if (_reachability_ticker)
+        {
+            _reachability_ticker->stop();
+            _reachability_ticker.reset();
+        }
 
         log::debug(logcat, "stopping nodedb events");
         node_db()->cleanup();
