@@ -379,13 +379,13 @@ namespace llarp::handlers
 
         auto netif_hook = [netif = _net_if, pktrouter = _packet_router]() mutable {
             log::info(logcat, "wassup");
-            // auto pkt = netif->read_next_packet();
+            auto pkt = netif->read_next_packet();
 
-            // while (not pkt.empty())
-            // {
-            //     pktrouter->handle_ip_packet(std::move(pkt));
-            //     pkt = netif->read_next_packet();
-            // }
+            while (not pkt.empty())
+            {
+                pktrouter->handle_ip_packet(std::move(pkt));
+                pkt = netif->read_next_packet();
+            }
         };
 
         _pkt_watcher = EventWatcher::make(router().loop(), std::move(netif_hook));
