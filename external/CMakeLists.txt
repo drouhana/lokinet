@@ -60,10 +60,12 @@ endmacro()
 
 # libevent
 set(EVENT__LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
-set(EVENT__DISABLE_TESTS ON CACHE BOOL "" FORCE)
 set(EVENT__DISABLE_MBEDTLS ON CACHE BOOL "" FORCE)
+set(EVENT__DISABLE_MBEDTLS ON CACHE BOOL "" FORCE)
+set(EVENT__DISABLE_OPENSSL ON CACHE BOOL "" FORCE)
 set(EVENT__DISABLE_BENCHMARK ON CACHE BOOL "" FORCE)
 set(EVENT__DISABLE_SAMPLES ON CACHE BOOL "" FORCE)
+set(EVENT__DISABLE_TESTS ON CACHE BOOL "" FORCE)
 add_subdirectory(libevent EXCLUDE_FROM_ALL)
 
 add_library(libevent::core ALIAS event_core)
@@ -94,6 +96,7 @@ if(WITH_PEERSTATS)
   endif()
   target_link_libraries(sqlite_orm INTERFACE sqlite3)
 endif()
+
 
 add_subdirectory(oxen-libquic)
 
