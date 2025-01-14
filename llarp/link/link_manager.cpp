@@ -1470,7 +1470,8 @@ namespace llarp
 
             try
             {
-                std::tie(hop_id, nonce, payload) = ONION::deserialize_hop(oxenc::bt_dict_consumer{message});
+                std::tie(hop_id, nonce, payload) =
+                    ONION::deserialize_hop(oxenc::bt_dict_consumer{bstring_view{message}});
             }
             catch (const std::exception& e)
             {

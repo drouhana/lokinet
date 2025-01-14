@@ -21,13 +21,13 @@
 
 namespace llarp
 {
-    using const_cspan = oxenc::cspan;
-    using const_uspan = oxenc::uspan;
-    using const_span = oxenc::bspan;
+    using const_cspan = oxenc::const_span<char>;
+    using const_uspan = oxenc::const_span<unsigned char>;
+    using const_span = oxenc::const_span<std::byte>;
 
-    using cspan = std::span<char>;
-    using uspan = std::span<uint8_t>;
-    using bspan = std::span<std::byte>;
+    using old_cspan = std::span<char>;
+    using old_uspan = std::span<uint8_t>;
+    using old_bspan = std::span<std::byte>;
 
     using ustring = std::basic_string<uint8_t>;
     using ustring_view = std::basic_string_view<uint8_t>;
@@ -86,9 +86,9 @@ namespace llarp
     inline ustring_view to_usv(std::string_view v) { return {reinterpret_cast<const uint8_t*>(v.data()), v.size()}; }
 
     template <oxenc::basic_char T>
-    inline uspan to_uspan(std::basic_string<T>& v)
+    inline old_uspan to_uspan(std::basic_string<T>& v)
     {
-        return uspan{reinterpret_cast<uint8_t*>(v.data()), v.size()};
+        return old_uspan{reinterpret_cast<uint8_t*>(v.data()), v.size()};
     }
 }  // namespace llarp
 
