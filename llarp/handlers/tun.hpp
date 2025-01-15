@@ -144,15 +144,6 @@ namespace llarp::handlers
 
         void start_poller();
 
-        //   protected:
-        struct WritePacket
-        {
-            uint64_t seqno;
-            IPPacket pkt;
-
-            bool operator>(const WritePacket& other) const { return seqno > other.seqno; }
-        };
-
         // Stores assigned IP's for each session in/out of this lokinet instance
         //  - Reserved local addresses is directly pre-loaded from config
         //  - Persisting address map is directly pre-loaded from config
